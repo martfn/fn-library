@@ -405,8 +405,18 @@ section h2 {
 .collection-table tr:last-child td { border-bottom: none; }
 .collection-table .cover-cell { display: flex; align-items: center; gap: 10px; font-weight: 700; }
 .collection-table .cover-cell img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; background: var(--bg-elevated); }
+.inline-pill { display: inline-flex; align-items: center; gap: 6px; margin: 2px 6px 2px 0; padding: 5px 10px; border-radius: 999px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text); font-size: 0.78rem; font-weight: 600; }
 
 .small-btn { padding: 7px 12px; font-size: 0.75rem; border-radius: 8px; background: var(--bg-elevated); color: var(--accent-2); border: 1px solid var(--border); }
+.table-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.field-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+.edit-drawer { margin-top: 26px; }
+.drawer-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 18px; }
+.drawer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.drawer-section-full { grid-column: 1 / -1; }
+.checkbox-row { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 2px; color: var(--text); font-weight: 600; }
+.checkbox-row input { width: 18px; height: 18px; accent-color: var(--accent); }
+.drawer-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap; }
 
 .import-export { display: flex; gap: 10px; }
 .import-export .btn { flex: 1; }
@@ -414,4 +424,10 @@ section h2 {
 @media (min-width: 640px) {
   .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   .editor-grid .panel.full-width { grid-column: 1 / -1; }
+}
+
+@media (max-width: 720px) {
+  .drawer-grid { grid-template-columns: 1fr; }
+  .drawer-header { flex-direction: column; }
+  .table-actions { justify-content: flex-start; }
 }

@@ -83,7 +83,7 @@ function updateHighlight(items) {
 
 async function runAutocomplete(query) {
   el.dropdown.classList.remove("hidden");
-  el.dropdown.innerHTML = `<div class="autocomplete-loading">Searching\u2026</div>`;
+  el.dropdown.innerHTML = `<div class="autocomplete-loading">Searching…</div>`;
   try {
     const results = await Rawg.search(query, 8);
     activeResults = results;
@@ -107,7 +107,7 @@ function renderDropdown(results) {
       <img src="${r.cover || ""}" alt="" onerror="this.style.visibility='hidden'" />
       <div>
         <div class="ac-title">${r.title}</div>
-        <div class="ac-sub">${r.year || "Unknown year"} \u00b7 ${(r.officialPlatforms || []).slice(0, 3).join(", ")}</div>
+        <div class="ac-sub">${r.year || "Unknown year"} · ${(r.officialPlatforms || []).slice(0, 3).join(", ")}</div>
       </div>
     `;
     item.onclick = () => selectSearchResult(r.rawgId);
@@ -125,7 +125,7 @@ function hideDropdown() {
 
 async function selectSearchResult(rawgId) {
   hideDropdown();
-  el.gameSearch.value = "Loading\u2026";
+  el.gameSearch.value = "Loading…";
   try {
     const details = await Rawg.details(rawgId);
     pendingGame = {
@@ -215,30 +215,126 @@ el.addPlatformBtn.onclick = () => {
 
 // ---------- Collection table ----------
 
+function getPlatformMeta(platformId) {
+  return library.platforms.find((p) => p.id === platformId) || null;
+}
+
+function formatPlatformList(platformIds = []) {
+  if (!platformIds.length) return "—";
+  return platformIds.map((id) => {
+    const p = getPlatformMeta(id);
+    const label = p ? `${p.icon ? p.icon + " " : ""}${p.name}` : id;
+    return `<span class="inline-pill">${label}</span>`;
+  }).join(" ");
+}
+
+function formatMoodList(moods = []) {
+  if (!moods.length) return "—";
+  return moods.map((m) => {
+    const def = Moods.MOOD_DEFS[m];
+    return def ? `${def.emoji} ${def.label}` : m;
+  }).join(", ");
+}
+
 function renderCollectionTable() {
   el.collectionCount.textContent = library.games.length;
   el.collectionBody.innerHTML = "";
   if (library.games.length === 0) {
-    el.collectionBody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:24px">No games yet \u2014 search above to add your first one.</td></tr>`;
+    el.collectionBody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:24px">No games yet — search above to add your first one.</td></tr>`;
     return;
   }
   library.games.forEach((g) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="cover-cell"><img src="${g.cover || ""}" alt="" onerror="this.style.visibility='hidden'" />${g.title}</td>
-      <td>${(g.personalPlatforms || []).join(", ") || "\u2014"}</td>
-      <td>${(g.moods || []).join(", ") || "\u2014"}</td>
+      <td>${formatPlatformList(g.personalPlatforms || [])}</td>
+      <td>${formatMoodList(g.moods || [])}</td>
       <td>${g.lastPlayed ? new Date(g.lastPlayed).toLocaleDateString() : "Never"}</td>
-      <td><button class="btn small-btn" data-id="${g.id}">Remove</button></td>
+      <td>
+        <div class="table-actions">
+          <button class="btn small-btn edit-btn" data-id="${g.id}">Edit</button>
+          <button class="btn small-btn remove-btn" data-id="${g.id}">Remove</button>
+        </div>
+      </td>
     `;
-    tr.querySelector("button").onclick = () => {
+    tr.querySelector(".edit-btn").onclick = () => openEditDrawer(g.id);
+    tr.querySelector(".remove-btn").onclick = () => {
       Storage.removeGame(library, g.id);
       library = Storage.load();
+      if (editingGameId === g.id) closeEditDrawer();
       renderCollectionTable();
     };
     el.collectionBody.appendChild(tr);
   });
 }
+
+function renderDrawerPlatformCheckboxes(game) {
+  el.drawerPlatformCheckboxes.innerHTML = "";
+  const selected = new Set(game.personalPlatforms || []);
+  library.platforms.forEach((p) => {
+    const supported = PlatformCompat.platformSupportsGame(p.id, game.officialPlatforms || []);
+    const wrap = document.createElement("div");
+    wrap.className = "platform-check" + (supported ? "" : " unsupported");
+    wrap.innerHTML = `
+      <input type="checkbox" id="drawer_plat_${p.id}" value="${p.id}" ${selected.has(p.id) ? "checked" : ""} />
+      <label for="drawer_plat_${p.id}">${p.icon || ""} ${p.name}</label>
+    `;
+    el.drawerPlatformCheckboxes.appendChild(wrap);
+  });
+}
+
+function renderDrawerMoodCheckboxes(game) {
+  el.drawerMoodCheckboxes.innerHTML = "";
+  const selected = new Set(game.moods || []);
+  Object.entries(Moods.MOOD_DEFS).forEach(([id, def]) => {
+    const wrap = document.createElement("div");
+    wrap.className = "platform-check";
+    wrap.innerHTML = `
+      <input type="checkbox" id="drawer_mood_${id}" value="${id}" ${selected.has(id) ? "checked" : ""} />
+      <label for="drawer_mood_${id}">${def.emoji} ${def.label}</label>
+    `;
+    el.drawerMoodCheckboxes.appendChild(wrap);
+  });
+}
+
+function openEditDrawer(gameId) {
+  const game = library.games.find((g) => g.id === gameId);
+  if (!game) return;
+  editingGameId = gameId;
+  el.editDrawerTitle.textContent = `Edit ${game.title}`;
+  renderDrawerPlatformCheckboxes(game);
+  renderDrawerMoodCheckboxes(game);
+  el.drawerPlayTime.value = game.playTime || "";
+  el.drawerLastPlayed.value = game.lastPlayed || "";
+  el.drawerRating.value = game.personalRating != null ? String(game.personalRating) : "";
+  el.drawerFavorite.checked = Boolean(game.favorite);
+  el.editDrawer.classList.remove("hidden");
+  el.editDrawer.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function closeEditDrawer() {
+  editingGameId = null;
+  el.editDrawer.classList.add("hidden");
+}
+
+el.closeDrawerBtn.onclick = closeEditDrawer;
+el.cancelDrawerBtn.onclick = closeEditDrawer;
+el.saveDrawerBtn.onclick = () => {
+  if (!editingGameId) return;
+  const personalPlatforms = Array.from(el.drawerPlatformCheckboxes.querySelectorAll("input:checked")).map((i) => i.value);
+  const moods = Array.from(el.drawerMoodCheckboxes.querySelectorAll("input:checked")).map((i) => i.value);
+  Storage.updateGame(library, editingGameId, {
+    personalPlatforms,
+    moods,
+    playTime: el.drawerPlayTime.value || null,
+    lastPlayed: el.drawerLastPlayed.value || null,
+    personalRating: el.drawerRating.value ? Number(el.drawerRating.value) : null,
+    favorite: el.drawerFavorite.checked
+  });
+  library = Storage.load();
+  renderCollectionTable();
+  closeEditDrawer();
+};
 
 // ---------- Import / export ----------
 
@@ -248,6 +344,7 @@ el.importInput.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   library = await Storage.importFromFile(file);
+  closeEditDrawer();
   renderCollectionTable();
 });
 
