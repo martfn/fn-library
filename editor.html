@@ -65,6 +65,17 @@
       <input type="file" id="importInput" accept="application/json" style="display:none" />
     </section>
 
+    <section class="panel">
+      <h2>Settings</h2>
+      <p class="subtitle" style="margin-bottom:14px">Your RAWG API key stays only in this browser's local storage, so it won't be committed to GitHub Pages.</p>
+      <input id="rawgApiKeyInput" type="password" class="styled-input" placeholder="Paste your RAWG API key" />
+      <div class="import-export" style="margin-top:10px">
+        <button id="saveRawgKeyBtn" class="btn btn-secondary" style="margin:0">Save RAWG key</button>
+        <button id="clearRawgKeyBtn" class="btn btn-secondary" style="margin:0">Clear key</button>
+      </div>
+      <p id="rawgKeyStatus" class="subtitle" style="margin-top:10px"></p>
+    </section>
+
     <section class="panel full-width">
       <h2>Your collection (<span id="collectionCount">0</span>)</h2>
       <div class="collection-table-wrap">

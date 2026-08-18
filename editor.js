@@ -39,7 +39,30 @@ const el = {
   cancelDrawerBtn: document.getElementById("cancelDrawerBtn"),
   closeDrawerBtn: document.getElementById("closeDrawerBtn"),
   platformTemplateSearch: document.getElementById("platformTemplateSearch"),
-  platformTemplateDropdown: document.getElementById("platformTemplateDropdown")
+  platformTemplateDropdown: document.getElementById("platformTemplateDropdown"),
+  rawgApiKeyInput: document.getElementById("rawgApiKeyInput"),
+  saveRawgKeyBtn: document.getElementById("saveRawgKeyBtn"),
+  clearRawgKeyBtn: document.getElementById("clearRawgKeyBtn"),
+  rawgKeyStatus: document.getElementById("rawgKeyStatus")
+};
+
+
+function renderRawgSettings() {
+  const hasKey = Rawg.hasApiKey();
+  el.rawgApiKeyInput.value = Rawg.getApiKey();
+  el.rawgKeyStatus.textContent = hasKey
+    ? `RAWG key saved in this browser (${Rawg.getApiKey().slice(0, 4)}••••${Rawg.getApiKey().slice(-4)}).`
+    : "No RAWG key saved yet.";
+}
+
+el.saveRawgKeyBtn.onclick = () => {
+  Rawg.setApiKey(el.rawgApiKeyInput.value);
+  renderRawgSettings();
+};
+
+el.clearRawgKeyBtn.onclick = () => {
+  Rawg.setApiKey("");
+  renderRawgSettings();
 };
 
 // ---------- Live autocomplete ----------
@@ -201,7 +224,8 @@ el.confirmAddBtn.onclick = () => {
     pendingGame = null;
     el.platformPicker.classList.add("hidden");
     el.gameSearch.value = "";
-    renderCollectionTable();
+    renderRawgSettings();
+renderCollectionTable();
     alert(`"${duplicate.title}" was already in your library, so I updated the existing entry instead of adding a duplicate.`);
     return;
   }
@@ -229,7 +253,8 @@ el.confirmAddBtn.onclick = () => {
   pendingGame = null;
   el.platformPicker.classList.add("hidden");
   el.gameSearch.value = "";
-  renderCollectionTable();
+  renderRawgSettings();
+renderCollectionTable();
 };
 
 // ---------- Platform management ----------
@@ -257,14 +282,16 @@ function renderPlatformList() {
       if (!newName) { nameInput.value = p.name; return; }
       Storage.updatePlatform(library, p.id, { name: newName });
       library = Storage.load();
-      renderCollectionTable();
+      renderRawgSettings();
+renderCollectionTable();
     });
     row.querySelector(".remove-platform-btn").onclick = () => {
       if (!confirm(`Remove "${p.name}"? Games will keep their other platforms.`)) return;
       Storage.removePlatform(library, p.id);
       library = Storage.load();
       renderPlatformList();
-      renderCollectionTable();
+      renderRawgSettings();
+renderCollectionTable();
       if (editingGameId) openEditDrawer(editingGameId);
     };
     container.appendChild(row);
@@ -289,7 +316,8 @@ el.addPlatformBtn.onclick = () => {
   el.newPlatformName.value = "";
   el.newPlatformIcon.value = "";
   renderPlatformList();
-  renderCollectionTable();
+  renderRawgSettings();
+renderCollectionTable();
   if (editingGameId) openEditDrawer(editingGameId);
 };
 
@@ -312,7 +340,8 @@ function addPlatformFromTemplate(templateId) {
   el.platformTemplateSearch.value = "";
   hideTemplateDropdown();
   renderPlatformList();
-  renderCollectionTable();
+  renderRawgSettings();
+renderCollectionTable();
   if (editingGameId) openEditDrawer(editingGameId);
 }
 
@@ -412,7 +441,8 @@ function renderCollectionTable() {
       Storage.removeGame(library, g.id);
       library = Storage.load();
       if (editingGameId === g.id) closeEditDrawer();
-      renderCollectionTable();
+      renderRawgSettings();
+renderCollectionTable();
     };
     el.collectionBody.appendChild(tr);
   });
@@ -482,7 +512,8 @@ el.saveDrawerBtn.onclick = () => {
     favorite: el.drawerFavorite.checked
   });
   library = Storage.load();
-  renderCollectionTable();
+  renderRawgSettings();
+renderCollectionTable();
   closeEditDrawer();
 };
 
@@ -495,7 +526,9 @@ el.importInput.addEventListener("change", async (e) => {
   if (!file) return;
   library = await Storage.importFromFile(file);
   closeEditDrawer();
-  renderCollectionTable();
+  renderRawgSettings();
+renderCollectionTable();
 });
 
+renderRawgSettings();
 renderCollectionTable();

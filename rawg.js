@@ -10,9 +10,22 @@
  */
 
 const RAWG_BASE = "https://api.rawg.io/api";
+const RAWG_KEY_STORAGE = "rawgApiKey";
 
-// Fill this in with your own key from https://rawg.io/apidocs
-const RAWG_API_KEY = "YOUR_RAWG_API_KEY_HERE";
+// Never hardcode a real key here — this file is public on GitHub Pages.
+// The key is entered once by the user (Editor > Settings) and kept only
+// in this browser's localStorage, never committed to source control.
+function getRawgApiKey() {
+  return (localStorage.getItem(RAWG_KEY_STORAGE) || "").trim();
+}
+
+function setRawgApiKey(key) {
+  localStorage.setItem(RAWG_KEY_STORAGE, (key || "").trim());
+}
+
+function hasRawgApiKey() {
+  return getRawgApiKey().length > 0;
+}
 
 async function rawgSearch(query, pageSize = 10) {
   // Fetch a wider pool than we display so the true best match is likely
@@ -23,7 +36,9 @@ async function rawgSearch(query, pageSize = 10) {
   // zero or wrong results. Fuzzy search + our own re-ranking below is what
   // reliably surfaces both obscure exact titles and popular ones.
   const fetchSize = Math.max(pageSize * 3, 20);
-  const url = `${RAWG_BASE}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
+  const apiKey = getRawgApiKey();
+  if (!apiKey) throw new Error("Missing RAWG API key. Set it under Settings in the editor.");
+  const url = `${RAWG_BASE}/games?key=${apiKey}&search=${encodeURIComponent(
     query
   )}&page_size=${fetchSize}`;
   const res = await fetch(url);
@@ -37,7 +52,9 @@ async function rawgSearch(query, pageSize = 10) {
 }
 
 async function rawgDetails(rawgId) {
-  const url = `${RAWG_BASE}/games/${rawgId}?key=${RAWG_API_KEY}`;
+  const apiKey = getRawgApiKey();
+  if (!apiKey) throw new Error("Missing RAWG API key. Set it under Settings in the editor.");
+  const url = `${RAWG_BASE}/games/${rawgId}?key=${apiKey}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`RAWG details failed: ${res.status}`);
   const data = await res.json();
@@ -105,4 +122,4 @@ function scoreSearchResult(result, query) {
   return score;
 }
 
-const Rawg = { search: rawgSearch, details: rawgDetails };
+const Rawg = { search: rawgSearch, details: rawgDetails, getApiKey: getRawgApiKey, setApiKey: setRawgApiKey, hasApiKey: hasRawgApiKey };
