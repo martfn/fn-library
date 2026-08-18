@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>My Game Library</title>
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#12121a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <div>
+      <h1>My Game Library</h1>
+      <p id="gameCount" class="subtitle">0 games available</p>
+    </div>
+    <span class="brand-mark">🕹️</span>
+  </header>
+
+  <section class="actions">
+    <button id="surpriseBtn" class="btn btn-primary">🎲 Surprise me</button>
+    <button id="dontKnowBtn" class="btn btn-primary">🧠 I don't know what I want</button>
+  </section>
+
+  <section>
+    <h2>Platforms</h2>
+    <div class="platform-filters" id="platformFilters"></div>
+  </section>
+
+  <section class="search-section">
+    <h2>Search</h2>
+    <input id="searchInput" type="search" placeholder="Search your library..." />
+  </section>
+
+  <section id="resultCard" class="result-card hidden"></section>
+
+  <section>
+    <h2>Library</h2>
+    <div class="library-list" id="libraryList"></div>
+  </section>
+
+  <a href="editor.html" class="editor-link">Open Collection Editor →</a>
+
+</div>
+
+<div id="wizard" class="modal hidden">
+  <div class="modal-content">
+    <div id="wizardStep1">
+      <h2>What's the vibe?</h2>
+      <div class="mood-grid" id="moodGrid"></div>
+    </div>
+    <div id="wizardStep2" class="hidden">
+      <h2>How much time do you have?</h2>
+      <div class="time-grid">
+        <button class="btn time-btn" data-time="short">⚡ 15–30 min</button>
+        <button class="btn time-btn" data-time="medium">🕐 About an hour</button>
+        <button class="btn time-btn" data-time="long">🌙 Several hours</button>
+        <button class="btn time-btn" data-time="any">🤷 Doesn't matter</button>
+      </div>
+    </div>
+    <button id="closeWizard" class="btn btn-secondary">Cancel</button>
+  </div>
+</div>
+
+<script src="storage.js"></script>
+<script src="rawg.js"></script>
+<script src="moods.js"></script>
+<script src="recommend.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

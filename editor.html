@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Collection Editor — My Game Library</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body class="editor-body">
+<div id="app">
+
+  <header class="topbar">
+    <div>
+      <h1>Collection Editor</h1>
+      <p class="subtitle">Manage what you can actually play</p>
+    </div>
+    <span class="brand-mark">🎮</span>
+  </header>
+
+  <div class="editor-grid">
+
+    <section class="panel full-width">
+      <h2>Add a game</h2>
+      <div class="search-row">
+        <div class="autocomplete-wrap">
+          <input id="gameSearch" type="text" class="styled-input" placeholder="Start typing a game title…" autocomplete="off" />
+          <div id="autocompleteDropdown" class="autocomplete-dropdown hidden"></div>
+        </div>
+      </div>
+
+      <div id="platformPicker" class="hidden" style="margin-top:20px">
+        <div id="selectedGameCard" class="selected-game-card"></div>
+
+        <h2>Where can you play this?</h2>
+        <p class="subtitle" style="margin-bottom:10px">Dimmed platforms probably can't run this game, but you can still pick them if you know better.</p>
+        <div id="platformCheckboxes" class="platform-checkboxes"></div>
+        <button id="confirmAddBtn" class="btn btn-primary">Add to library</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Personal platforms</h2>
+      <p class="subtitle" style="margin-bottom:14px">This is your list of systems and setups — Mac, Wii, PS3, Switch, etc. Add a new one here if you get another console; it'll show up as a choice whenever you add a game.</p>
+      <div class="new-platform-row">
+        <input id="newPlatformName" type="text" class="styled-input" placeholder="New platform name" />
+        <input id="newPlatformIcon" type="text" class="styled-input" placeholder="Icon" />
+        <button id="addPlatformBtn" class="btn btn-secondary" style="margin:0;width:auto;flex:none;padding:0 16px">Add</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Import / export</h2>
+      <div class="import-export">
+        <button id="exportBtn" class="btn btn-secondary" style="margin:0">Export JSON</button>
+        <button id="importBtn" class="btn btn-secondary" style="margin:0">Import JSON</button>
+      </div>
+      <input type="file" id="importInput" accept="application/json" style="display:none" />
+    </section>
+
+    <section class="panel full-width">
+      <h2>Your collection (<span id="collectionCount">0</span>)</h2>
+      <div class="collection-table-wrap">
+        <table class="collection-table">
+          <thead>
+            <tr><th>Game</th><th>Platforms</th><th>Moods</th><th>Last played</th><th></th></tr>
+          </thead>
+          <tbody id="collectionBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+    <section id="editDrawer" class="panel edit-drawer hidden">
+      <div class="drawer-header">
+        <div>
+          <h2 id="editDrawerTitle">Edit game</h2>
+          <p class="subtitle">Adjust your personal metadata without deleting and re-adding the game.</p>
+        </div>
+        <button id="closeDrawerBtn" class="btn btn-secondary" style="margin:0;width:auto;flex:none;padding:0 16px">Close</button>
+      </div>
+
+      <div class="drawer-grid">
+        <div class="drawer-section drawer-section-full">
+          <label class="field-label">Where can you play this?</label>
+          <div id="drawerPlatformCheckboxes" class="platform-checkboxes"></div>
+        </div>
+
+        <div class="drawer-section">
+          <label class="field-label" for="drawerPlayTime">Play time</label>
+          <select id="drawerPlayTime" class="styled-input">
+            <option value="">Not set</option>
+            <option value="short">15–30 minutes</option>
+            <option value="medium">About an hour</option>
+            <option value="long">Several hours</option>
+            <option value="any">Doesn't matter</option>
+          </select>
+        </div>
+
+        <div class="drawer-section">
+          <label class="field-label" for="drawerLastPlayed">Last played</label>
+          <input id="drawerLastPlayed" type="date" class="styled-input" />
+        </div>
+
+        <div class="drawer-section">
+          <label class="field-label" for="drawerRating">Personal rating</label>
+          <select id="drawerRating" class="styled-input">
+            <option value="">Not rated</option>
+            <option value="1">★☆☆☆☆</option>
+            <option value="2">★★☆☆☆</option>
+            <option value="3">★★★☆☆</option>
+            <option value="4">★★★★☆</option>
+            <option value="5">★★★★★</option>
+          </select>
+        </div>
+
+        <div class="drawer-section">
+          <label class="field-label">Favorite</label>
+          <label class="checkbox-row"><input id="drawerFavorite" type="checkbox" /> Mark as a favorite</label>
+        </div>
+
+        <div class="drawer-section drawer-section-full">
+          <label class="field-label">Moods</label>
+          <div id="drawerMoodCheckboxes" class="platform-checkboxes mood-checkboxes"></div>
+        </div>
+      </div>
+
+      <div class="drawer-actions">
+        <button id="saveDrawerBtn" class="btn btn-primary" style="margin:0;width:auto;flex:none;padding:0 18px">Save changes</button>
+        <button id="cancelDrawerBtn" class="btn btn-secondary" style="margin:0;width:auto;flex:none;padding:0 18px">Cancel</button>
+      </div>
+    </section>
+
+  <a href="index.html" class="editor-link">← Back to app</a>
+
+</div>
+
+<script src="storage.js"></script>
+<script src="rawg.js"></script>
+<script src="moods.js"></script>
+<script src="platformCompat.js"></script>
+<script src="editor.js"></script>
+</body>
+</html>
