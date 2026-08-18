@@ -6,6 +6,7 @@
 let library = Storage.load();
 let activePlatform = "all";
 let wizardMood = "any";
+let lastSuggestion = null;
 
 const el = {
   count: document.getElementById("gameCount"),
@@ -24,8 +25,15 @@ const el = {
   closeWizard: document.getElementById("closeWizard")
 };
 
+function currentHangoutFilters() {
+  return {
+    multiplayerMode: el.multiplayerFilter.value,
+    minPlayers: Number(el.minPlayersFilter.value || 1)
+  };
+}
+
 function gameMultiplayer(game) {
-  return game.multiplayer || Multiplayer.deriveMultiplayerInfo(game);
+  return Multiplayer.deriveMultiplayerInfo(game);
 }
 
 function platformName(id) {
@@ -113,6 +121,21 @@ function renderLibraryList() {
   });
 }
 
+function nextSuggestedGame(currentGame) {
+  if (lastSuggestion && lastSuggestion.mode === "recommend") {
+    return Recommend.recommend(library.games, {
+      ...lastSuggestion.filters,
+      excludeIds: [currentGame.id]
+    }) || Recommend.recommend(library.games, lastSuggestion.filters);
+  }
+
+  const hangoutFilters = currentHangoutFilters();
+  return Recommend.surpriseMe(library.games, activePlatform, {
+    ...hangoutFilters,
+    excludeIds: [currentGame.id]
+  }) || Recommend.surpriseMe(library.games, activePlatform, hangoutFilters);
+}
+
 function showResultCard(game) {
   if (!game) {
     el.resultCard.classList.add("hidden");
@@ -143,19 +166,18 @@ function showResultCard(game) {
     el.resultCard.classList.add("hidden");
   };
   document.getElementById("giveAnother").onclick = () => {
-    const next = Recommend.surpriseMe(library.games, activePlatform, {
-      multiplayerMode: el.multiplayerFilter.value,
-      minPlayers: Number(el.minPlayersFilter.value || 1)
-    });
+    const next = nextSuggestedGame(game);
     showResultCard(next);
   };
 }
 
 el.surpriseBtn.onclick = () => {
-  const game = Recommend.surpriseMe(library.games, activePlatform, {
-    multiplayerMode: el.multiplayerFilter.value,
-    minPlayers: Number(el.minPlayersFilter.value || 1)
-  });
+  const hangoutFilters = currentHangoutFilters();
+  lastSuggestion = {
+    mode: "surprise",
+    filters: { platform: activePlatform, ...hangoutFilters }
+  };
+  const game = Recommend.surpriseMe(library.games, activePlatform, hangoutFilters);
   showResultCard(game);
 };
 
@@ -187,13 +209,14 @@ el.closeWizard.onclick = () => el.wizard.classList.add("hidden");
 document.querySelectorAll(".time-btn").forEach((btn) => {
   btn.onclick = () => {
     const timeBudget = btn.dataset.time;
-    const game = Recommend.recommend(library.games, {
+    const filters = {
       mood: wizardMood,
       timeBudget,
       platform: activePlatform,
-      multiplayerMode: el.multiplayerFilter.value,
-      minPlayers: Number(el.minPlayersFilter.value || 1)
-    });
+      ...currentHangoutFilters()
+    };
+    lastSuggestion = { mode: "recommend", filters };
+    const game = Recommend.recommend(library.games, filters);
     el.wizard.classList.add("hidden");
     showResultCard(game);
   };

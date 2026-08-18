@@ -22,7 +22,7 @@ function moodMatches(game, mood) {
 }
 
 function multiplayerInfo(game) {
-  return game.multiplayer || Multiplayer.deriveMultiplayerInfo(game);
+  return Multiplayer.deriveMultiplayerInfo(game);
 }
 
 function multiplayerMatches(game, filters = {}) {
@@ -37,6 +37,10 @@ function multiplayerMatches(game, filters = {}) {
   if (minPlayers > 1 && (info.maxPlayers || 1) < minPlayers) return false;
 
   return true;
+}
+
+function isExcluded(game, filters = {}) {
+  return (filters.excludeIds || []).includes(game.id);
 }
 
 function scoreGame(game, { mood, timeBudget }) {
@@ -61,6 +65,7 @@ function recommend(games, filters = {}) {
     if (filters.platform && filters.platform !== "all") {
       if (!(g.personalPlatforms || []).includes(filters.platform)) return false;
     }
+    if (isExcluded(g, filters)) return false;
     if (!multiplayerMatches(g, filters)) return false;
     return true;
   });
@@ -79,6 +84,7 @@ function recommend(games, filters = {}) {
 function surpriseMe(games, platformFilter = "all", extraFilters = {}) {
   const pool = games.filter((g) => {
     if (platformFilter !== "all" && !(g.personalPlatforms || []).includes(platformFilter)) return false;
+    if (isExcluded(g, extraFilters)) return false;
     if (!multiplayerMatches(g, extraFilters)) return false;
     return true;
   });
