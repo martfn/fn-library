@@ -69,6 +69,23 @@ const Storage = {
     return library;
   },
 
+  updatePlatform(library, platformId, patch) {
+    const idx = library.platforms.findIndex((p) => p.id === platformId);
+    if (idx === -1) return library;
+    library.platforms[idx] = { ...library.platforms[idx], ...patch };
+    this.save(library);
+    return library;
+  },
+
+  removePlatform(library, platformId) {
+    library.platforms = library.platforms.filter((p) => p.id !== platformId);
+    library.games.forEach((g) => {
+      g.personalPlatforms = (g.personalPlatforms || []).filter((id) => id !== platformId);
+    });
+    this.save(library);
+    return library;
+  },
+
   exportToFile(library) {
     const blob = new Blob([JSON.stringify(library, null, 2)], {
       type: "application/json"

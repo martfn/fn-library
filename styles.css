@@ -390,6 +390,12 @@ section h2 {
   letter-spacing: 0.06em; font-weight: 700; margin: 14px 0 8px;
 }
 
+.platform-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.platform-row { display: flex; align-items: center; gap: 10px; }
+.platform-row-icon { font-size: 1.2rem; flex: 0 0 26px; text-align: center; }
+.platform-row .platform-row-name { flex: 1; padding: 10px 14px; }
+.platform-row .remove-platform-btn { flex: none; }
+
 .new-platform-row { display: flex; gap: 10px; }
 .new-platform-row input:first-child { flex: 1; }
 .new-platform-row input:nth-child(2) { flex: 0 0 70px; text-align: center; }

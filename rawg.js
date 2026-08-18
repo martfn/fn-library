@@ -15,16 +15,21 @@ const RAWG_BASE = "https://api.rawg.io/api";
 const RAWG_API_KEY = "YOUR_RAWG_API_KEY_HERE";
 
 async function rawgSearch(query, pageSize = 10) {
+  // Fetch a wider pool than we display, and ask RAWG to pre-sort by its own
+  // "added" popularity metric, so the true best match is likely inside the
+  // pool before we re-rank it ourselves with text-match + popularity scoring.
+  const fetchSize = Math.max(pageSize * 3, 20);
   const url = `${RAWG_BASE}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
     query
-  )}&page_size=${pageSize}`;
+  )}&search_precise=true&ordering=-added&page_size=${fetchSize}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`RAWG search failed: ${res.status}`);
   const data = await res.json();
 
   return data.results
     .map(normalizeSearchResult)
-    .sort((a, b) => scoreSearchResult(b, query) - scoreSearchResult(a, query));
+    .sort((a, b) => scoreSearchResult(b, query) - scoreSearchResult(a, query))
+    .slice(0, pageSize);
 }
 
 async function rawgDetails(rawgId) {

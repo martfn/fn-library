@@ -201,6 +201,43 @@ el.confirmAddBtn.onclick = () => {
 
 // ---------- Platform management ----------
 
+function renderPlatformList() {
+  const container = document.getElementById("platformList");
+  if (!container) return;
+  if (library.platforms.length === 0) {
+    container.innerHTML = `<p class="subtitle" style="margin-bottom:14px">No platforms yet — add your first system below.</p>`;
+    return;
+  }
+  container.innerHTML = "";
+  library.platforms.forEach((p) => {
+    const row = document.createElement("div");
+    row.className = "platform-row";
+    const iconFallback = String.fromCodePoint(0x1f3ae);
+    row.innerHTML = `
+      <span class="platform-row-icon">${p.icon || iconFallback}</span>
+      <input type="text" class="styled-input platform-row-name" value="${p.name.replace(/"/g, "&quot;")}" data-id="${p.id}" />
+      <button class="btn small-btn remove-platform-btn" data-id="${p.id}">Remove</button>
+    `;
+    const nameInput = row.querySelector(".platform-row-name");
+    nameInput.addEventListener("change", () => {
+      const newName = nameInput.value.trim();
+      if (!newName) { nameInput.value = p.name; return; }
+      Storage.updatePlatform(library, p.id, { name: newName });
+      library = Storage.load();
+      renderCollectionTable();
+    });
+    row.querySelector(".remove-platform-btn").onclick = () => {
+      if (!confirm(`Remove "${p.name}"? Games will keep their other platforms.`)) return;
+      Storage.removePlatform(library, p.id);
+      library = Storage.load();
+      renderPlatformList();
+      renderCollectionTable();
+      if (editingGameId) openEditDrawer(editingGameId);
+    };
+    container.appendChild(row);
+  });
+}
+
 el.addPlatformBtn.onclick = () => {
   const name = el.newPlatformName.value.trim();
   if (!name) return;
@@ -209,9 +246,12 @@ el.addPlatformBtn.onclick = () => {
   library = Storage.load();
   el.newPlatformName.value = "";
   el.newPlatformIcon.value = "";
+  renderPlatformList();
   renderCollectionTable();
   if (editingGameId) openEditDrawer(editingGameId);
 };
+
+renderPlatformList();
 
 // ---------- Collection table ----------
 
