@@ -1,3 +1,5 @@
+**INFO:** Mega vibe-coded shit bcz my Perplexity subscription is nearly done so I wanted to experiment a bit
+
 # My Game Library
 
 A private, mobile-first personal game library and "what should I play?" recommendation tool.
