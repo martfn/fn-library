@@ -15,13 +15,17 @@ const RAWG_BASE = "https://api.rawg.io/api";
 const RAWG_API_KEY = "YOUR_RAWG_API_KEY_HERE";
 
 async function rawgSearch(query, pageSize = 10) {
-  // Fetch a wider pool than we display, and ask RAWG to pre-sort by its own
-  // "added" popularity metric, so the true best match is likely inside the
-  // pool before we re-rank it ourselves with text-match + popularity scoring.
+  // Fetch a wider pool than we display so the true best match is likely
+  // inside the pool before we re-rank it ourselves with text-match +
+  // popularity scoring. NOTE: search_precise is deliberately NOT used here
+  // — it disables RAWG's fuzzy matching, which causes short/generic titles
+  // like "Golf" or "Tennis" (real 1989 Game Boy launch titles) to return
+  // zero or wrong results. Fuzzy search + our own re-ranking below is what
+  // reliably surfaces both obscure exact titles and popular ones.
   const fetchSize = Math.max(pageSize * 3, 20);
   const url = `${RAWG_BASE}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
     query
-  )}&search_precise=true&ordering=-added&page_size=${fetchSize}`;
+  )}&page_size=${fetchSize}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`RAWG search failed: ${res.status}`);
   const data = await res.json();
