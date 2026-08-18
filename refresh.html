@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Library Refresh Tool</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; background: #111; color: #eee; }
+  h1 { font-size: 1.4rem; }
+  button { padding: 10px 16px; font-size: 1rem; border-radius: 8px; border: none; background: #4a7dfc; color: white; cursor: pointer; margin-right: 8px; }
+  button:disabled { background: #555; cursor: not-allowed; }
+  #log { white-space: pre-wrap; font-family: monospace; font-size: 0.85rem; background: #000; padding: 12px; border-radius: 8px; max-height: 400px; overflow-y: auto; margin-top: 16px; }
+  input[type=file] { color: #eee; margin: 12px 0; display: block; }
+  .row { margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<h1>Game Library Refresh Tool</h1>
+<p>Loads an exported library JSON, re-fetches RAWG tags for every game, re-derives moods and multiplayer info with the current logic, merges exact duplicate games, and lets you download the corrected file. Runs entirely in this browser tab so it can reach RAWG directly.</p>
+
+<div class="row">
+  <input type="file" id="fileInput" accept="application/json" />
+</div>
+<div class="row">
+  <button id="runBtn" disabled>Refresh Library</button>
+  <button id="downloadBtn" disabled>Download Refreshed JSON</button>
+</div>
+
+<div id="log"></div>
+
+<script src="rawg.js"></script>
+<script src="moods.js"></script>
+<script src="multiplayer.js"></script>
+<script>
+  const logEl = document.getElementById("log");
+  const fileInput = document.getElementById("fileInput");
+  const runBtn = document.getElementById("runBtn");
+  const downloadBtn = document.getElementById("downloadBtn");
+
+  let loadedData = null;
+  let resultData = null;
+
+  function log(msg) {
+    logEl.textContent += msg + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const text = await file.text();
+    loadedData = JSON.parse(text);
+    log(`Loaded ${loadedData.games.length} games from ${file.name}`);
+    runBtn.disabled = false;
+  });
+
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+
+  runBtn.addEventListener("click", async () => {
+    runBtn.disabled = true;
+    logEl.textContent = "";
+    const games = loadedData.games;
+
+    // Merge exact rawgId duplicates first
+    const byRawg = new Map();
+    const order = [];
+    for (const g of games) {
+      if (byRawg.has(g.rawgId)) {
+        const existing = byRawg.get(g.rawgId);
+        const merged = Array.from(new Set([...(existing.personalPlatforms || []), ...(g.personalPlatforms || [])]));
+        existing.personalPlatforms = merged;
+        log(`Merged duplicate: ${g.title} (rawgId ${g.rawgId}) -> platforms [${merged.join(", ")}]`);
+      } else {
+        byRawg.set(g.rawgId, g);
+        order.push(g.rawgId);
+      }
+    }
+    const deduped = order.map((id) => byRawg.get(id));
+    log(`After dedupe: ${deduped.length} games (${games.length - deduped.length} removed)`);
+
+    let updated = 0;
+    let failed = [];
+    for (let i = 0; i < deduped.length; i++) {
+      const g = deduped[i];
+      try {
+        const details = await Rawg.details(g.rawgId);
+        g.genres = details.genres && details.genres.length ? details.genres : g.genres || [];
+        g.tags = details.tags || [];
+        const oldMoods = g.moods || [];
+        g.moods = Moods.deriveAutoMoods({ genres: g.genres, tags: g.tags, year: g.year });
+        g.multiplayer = Multiplayer.deriveMultiplayerInfo({ genres: g.genres, tags: g.tags });
+        updated++;
+        if (JSON.stringify(oldMoods) !== JSON.stringify(g.moods)) {
+          log(`  ${g.title}: [${oldMoods.join(", ")}] -> [${g.moods.join(", ")}]`);
+        }
+      } catch (e) {
+        failed.push(g.title);
+        log(`  FAILED ${g.title} (rawgId ${g.rawgId}): ${e.message}`);
+      }
+      await sleep(120);
+      if (i % 10 === 0) log(`Progress: ${i + 1}/${deduped.length}`);
+    }
+
+    log(`Done. Updated ${updated}, failed ${failed.length}.`);
+    resultData = { ...loadedData, games: deduped };
+    downloadBtn.disabled = false;
+    runBtn.disabled = false;
+  });
+
+  downloadBtn.addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(resultData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "my-game-library-refreshed.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>
+</body>
+</html>
