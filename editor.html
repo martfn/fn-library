@@ -42,8 +42,15 @@
       <h2>Personal platforms</h2>
       <p class="subtitle" style="margin-bottom:14px">This is your list of systems and setups — Mac, Wii, PS3, Switch, etc. Add a new one here if you get another console; it'll show up as a choice whenever you add a game.</p>
       <div id="platformList" class="platform-list"></div>
+
+      <div class="autocomplete-wrap" style="margin-bottom:10px">
+        <input id="platformTemplateSearch" type="text" class="styled-input" placeholder="Search a known system (e.g. 2DS, PSP, Wii)…" autocomplete="off" />
+        <div id="platformTemplateDropdown" class="autocomplete-dropdown hidden"></div>
+      </div>
+      <p class="subtitle" id="platformTemplateHint" style="margin-bottom:10px">Pick a recognized system so the app knows exactly which official platforms it can run — or add a custom one below if it's not in the list.</p>
+
       <div class="new-platform-row">
-        <input id="newPlatformName" type="text" class="styled-input" placeholder="New platform name" />
+        <input id="newPlatformName" type="text" class="styled-input" placeholder="Custom platform name" />
         <input id="newPlatformIcon" type="text" class="styled-input" placeholder="Icon" />
         <button id="addPlatformBtn" class="btn btn-secondary" style="margin:0;width:auto;flex:none;padding:0 16px">Add</button>
       </div>
@@ -140,6 +147,7 @@
 <script src="rawg.js"></script>
 <script src="moods.js"></script>
 <script src="platformCompat.js"></script>
+<script src="platformTemplates.js"></script>
 <script src="editor.js"></script>
 </body>
 </html>

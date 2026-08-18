@@ -37,7 +37,9 @@ const el = {
   drawerFavorite: document.getElementById("drawerFavorite"),
   saveDrawerBtn: document.getElementById("saveDrawerBtn"),
   cancelDrawerBtn: document.getElementById("cancelDrawerBtn"),
-  closeDrawerBtn: document.getElementById("closeDrawerBtn")
+  closeDrawerBtn: document.getElementById("closeDrawerBtn"),
+  platformTemplateSearch: document.getElementById("platformTemplateSearch"),
+  platformTemplateDropdown: document.getElementById("platformTemplateDropdown")
 };
 
 // ---------- Live autocomplete ----------
@@ -158,7 +160,7 @@ function renderPlatformPicker() {
   const officialPlatforms = pendingGame.officialPlatforms || [];
 
   library.platforms.forEach((p) => {
-    const supported = PlatformCompat.platformSupportsGame(p.id, officialPlatforms);
+    const supported = PlatformCompat.platformSupportsGame(p, officialPlatforms);
     const wrap = document.createElement("div");
     wrap.className = "platform-check" + (supported ? "" : " unsupported");
     wrap.innerHTML = `
@@ -242,7 +244,16 @@ el.addPlatformBtn.onclick = () => {
   const name = el.newPlatformName.value.trim();
   if (!name) return;
   const id = name.toLowerCase().replace(/\s+/g, "-");
-  Storage.addPlatform(library, { id, name, icon: el.newPlatformIcon.value.trim() });
+  if (library.platforms.some((p) => p.id === id)) {
+    alert(`You already have a platform called "${name}".`);
+    return;
+  }
+  Storage.addPlatform(library, {
+    id,
+    name,
+    icon: el.newPlatformIcon.value.trim(),
+    officialMatches: null // custom platform: not tied to a known template, PlatformCompat treats it as unfiltered
+  });
   library = Storage.load();
   el.newPlatformName.value = "";
   el.newPlatformIcon.value = "";
@@ -250,6 +261,74 @@ el.addPlatformBtn.onclick = () => {
   renderCollectionTable();
   if (editingGameId) openEditDrawer(editingGameId);
 };
+
+// ---------- Platform template search (standardized systems) ----------
+
+function addPlatformFromTemplate(templateId) {
+  const template = PlatformTemplates.findTemplateById(templateId);
+  if (!template) return;
+  if (library.platforms.some((p) => p.id === template.id)) {
+    alert(`"${template.name}" is already in your personal platforms.`);
+    return;
+  }
+  Storage.addPlatform(library, {
+    id: template.id,
+    name: template.name,
+    icon: template.icon,
+    officialMatches: template.officialMatches
+  });
+  library = Storage.load();
+  el.platformTemplateSearch.value = "";
+  hideTemplateDropdown();
+  renderPlatformList();
+  renderCollectionTable();
+  if (editingGameId) openEditDrawer(editingGameId);
+}
+
+function hideTemplateDropdown() {
+  el.platformTemplateDropdown.classList.add("hidden");
+  el.platformTemplateDropdown.innerHTML = "";
+}
+
+function renderTemplateDropdown(matches) {
+  if (matches.length === 0) {
+    el.platformTemplateDropdown.classList.remove("hidden");
+    el.platformTemplateDropdown.innerHTML = `<div class="autocomplete-empty">No known system matches that — use the custom field below.</div>`;
+    return;
+  }
+  el.platformTemplateDropdown.classList.remove("hidden");
+  el.platformTemplateDropdown.innerHTML = "";
+  matches.forEach((t) => {
+    const already = library.platforms.some((p) => p.id === t.id);
+    const item = document.createElement("div");
+    item.className = "autocomplete-item";
+    item.innerHTML = `
+      <span class="platform-row-icon">${t.icon}</span>
+      <div>
+        <div class="ac-title">${t.name}${already ? " (already added)" : ""}</div>
+        <div class="ac-sub">Covers: ${t.officialMatches.join(", ")}</div>
+      </div>
+    `;
+    if (!already) item.onclick = () => addPlatformFromTemplate(t.id);
+    else item.style.opacity = "0.45";
+    el.platformTemplateDropdown.appendChild(item);
+  });
+}
+
+el.platformTemplateSearch.addEventListener("input", () => {
+  const q = el.platformTemplateSearch.value.trim();
+  if (q.length < 1) {
+    hideTemplateDropdown();
+    return;
+  }
+  renderTemplateDropdown(PlatformTemplates.searchTemplates(q));
+});
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#platformTemplateSearch") && !e.target.closest("#platformTemplateDropdown")) {
+    hideTemplateDropdown();
+  }
+});
 
 renderPlatformList();
 
@@ -312,7 +391,7 @@ function renderDrawerPlatformCheckboxes(game) {
   el.drawerPlatformCheckboxes.innerHTML = "";
   const selected = new Set(game.personalPlatforms || []);
   library.platforms.forEach((p) => {
-    const supported = PlatformCompat.platformSupportsGame(p.id, game.officialPlatforms || []);
+    const supported = PlatformCompat.platformSupportsGame(p, game.officialPlatforms || []);
     const wrap = document.createElement("div");
     wrap.className = "platform-check" + (supported ? "" : " unsupported");
     wrap.innerHTML = `

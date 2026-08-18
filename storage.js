@@ -6,14 +6,19 @@
 
 const STORAGE_KEY = "personalGameLibrary.v1";
 
+// officialMatches pins each default platform to the exact RAWG official
+// platform names it can run (native + real backwards compatibility /
+// emulation), matching platformTemplates.js. This is what lets the app
+// understand that e.g. "2DS" really means Nintendo 3DS + Nintendo DS +
+// Game Boy Advance games, instead of a vague free-text label.
 const DEFAULT_PLATFORMS = [
-  { id: "gbp", name: "Game Boy Pocket", icon: "\uD83D\uDD32" },
-  { id: "2ds", name: "Nintendo 2DS", icon: "\uD83C\uDFAE" },
-  { id: "psp", name: "PSP", icon: "\uD83D\uDCF1" },
-  { id: "wii", name: "Wii", icon: "\uD83D\uDFE2" },
-  { id: "ps3", name: "PS3", icon: "\uD83D\uDD35" },
-  { id: "switch", name: "Nintendo Switch", icon: "\uD83D\uDD34" },
-  { id: "mac", name: "Mac", icon: "\uD83D\uDCBB" }
+  { id: "gbp", name: "Game Boy Pocket", icon: "\uD83D\uDD32", officialMatches: ["Game Boy", "Game Boy Color"] },
+  { id: "2ds", name: "Nintendo 2DS", icon: "\uD83C\uDFAE", officialMatches: ["Nintendo 3DS", "Nintendo DS", "Game Boy Advance"] },
+  { id: "psp", name: "PSP", icon: "\uD83D\uDCF1", officialMatches: ["PSP", "PlayStation"] },
+  { id: "wii", name: "Wii", icon: "\uD83D\uDFE2", officialMatches: ["Wii", "GameCube", "Nintendo 64", "SNES", "NES"] },
+  { id: "ps3", name: "PS3", icon: "\uD83D\uDD35", officialMatches: ["PlayStation 3", "PlayStation 2", "PlayStation"] },
+  { id: "switch", name: "Nintendo Switch", icon: "\uD83D\uDD34", officialMatches: ["Nintendo Switch"] },
+  { id: "mac", name: "Mac", icon: "\uD83D\uDCBB", officialMatches: ["PC", "macOS", "Linux", "Dreamcast", "SEGA Saturn"] }
 ];
 
 function emptyLibrary() {
@@ -24,6 +29,19 @@ function emptyLibrary() {
   };
 }
 
+// Backfills officialMatches onto platforms that were created before
+// templates existed (e.g. the built-in defaults saved in an older browser
+// session), so "2DS" etc. become properly standardized without the user
+// having to delete and re-add them.
+function migratePlatforms(platforms) {
+  return platforms.map((p) => {
+    if (Array.isArray(p.officialMatches) && p.officialMatches.length) return p;
+    const defaultMatch = DEFAULT_PLATFORMS.find((d) => d.id === p.id);
+    if (defaultMatch) return { ...p, officialMatches: defaultMatch.officialMatches };
+    return p;
+  });
+}
+
 const Storage = {
   load() {
     try {
@@ -31,6 +49,7 @@ const Storage = {
       if (!raw) return emptyLibrary();
       const parsed = JSON.parse(raw);
       if (!parsed.platforms) parsed.platforms = DEFAULT_PLATFORMS;
+      else parsed.platforms = migratePlatforms(parsed.platforms);
       if (!parsed.games) parsed.games = [];
       return parsed;
     } catch (err) {
