@@ -34,6 +34,22 @@
   <section class="search-section">
     <h2>Search</h2>
     <input id="searchInput" type="search" placeholder="Search your library..." />
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+      <select id="multiplayerFilter" class="styled-input" style="flex:1;min-width:180px">
+        <option value="all">Any multiplayer mode</option>
+        <option value="multiplayer">Multiplayer only</option>
+        <option value="local">Local / couch multiplayer</option>
+        <option value="online">Online multiplayer</option>
+        <option value="solo">Solo only</option>
+      </select>
+      <select id="minPlayersFilter" class="styled-input" style="flex:1;min-width:180px">
+        <option value="1">Any player count</option>
+        <option value="2">At least 2 players</option>
+        <option value="4">At least 4 players</option>
+        <option value="6">At least 6 players</option>
+        <option value="8">At least 8 players</option>
+      </select>
+    </div>
   </section>
 
   <section id="resultCard" class="result-card hidden"></section>
@@ -69,6 +85,7 @@
 <script src="storage.js"></script>
 <script src="rawg.js"></script>
 <script src="moods.js"></script>
+<script src="multiplayer.js"></script>
 <script src="recommend.js"></script>
 <script src="app.js"></script>
 </body>

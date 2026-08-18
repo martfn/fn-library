@@ -132,7 +132,8 @@ async function selectSearchResult(rawgId) {
     const details = await Rawg.details(rawgId);
     pendingGame = {
       ...details,
-      moods: Moods.deriveAutoMoods(details)
+      moods: Moods.deriveAutoMoods(details),
+      multiplayer: Multiplayer.deriveMultiplayerInfo(details)
     };
     el.gameSearch.value = details.title;
     renderSelectedGameCard();
@@ -149,6 +150,7 @@ function renderSelectedGameCard() {
     <div>
       <h3>${pendingGame.title} ${pendingGame.year ? `(${pendingGame.year})` : ""}</h3>
       <div class="official-platforms">Officially on: ${(pendingGame.officialPlatforms || []).join(", ") || "Unknown"}</div>
+      <div class="official-platforms">${pendingGame.multiplayer && pendingGame.multiplayer.isMultiplayer ? `Multiplayer: up to ${pendingGame.multiplayer.maxPlayers || 2} players` : "Single-player / unknown multiplayer"}</div>
       <div class="moods-preview">${(pendingGame.moods || []).map((m) => `<span class="tag-pill">${Moods.MOOD_DEFS[m] ? Moods.MOOD_DEFS[m].emoji + " " + Moods.MOOD_DEFS[m].label : m}</span>`).join("")}</div>
     </div>
   `;
@@ -177,6 +179,33 @@ el.confirmAddBtn.onclick = () => {
     el.platformCheckboxes.querySelectorAll("input:checked")
   ).map((i) => i.value);
 
+  const duplicate = library.games.find((g) =>
+    (pendingGame.rawgId && g.rawgId === pendingGame.rawgId) ||
+    (g.title || "").trim().toLowerCase() === pendingGame.title.trim().toLowerCase() && String(g.year || "") === String(pendingGame.year || "")
+  );
+
+  if (duplicate) {
+    const mergedPlatforms = Array.from(new Set([...(duplicate.personalPlatforms || []), ...checked]));
+    Storage.updateGame(library, duplicate.id, {
+      rawgId: pendingGame.rawgId,
+      year: pendingGame.year,
+      cover: pendingGame.cover,
+      genres: pendingGame.genres,
+      tags: pendingGame.tags,
+      officialPlatforms: pendingGame.officialPlatforms,
+      personalPlatforms: mergedPlatforms,
+      moods: pendingGame.moods,
+      multiplayer: pendingGame.multiplayer
+    });
+    library = Storage.load();
+    pendingGame = null;
+    el.platformPicker.classList.add("hidden");
+    el.gameSearch.value = "";
+    renderCollectionTable();
+    alert(`"${duplicate.title}" was already in your library, so I updated the existing entry instead of adding a duplicate.`);
+    return;
+  }
+
   const game = {
     id: `game_${pendingGame.rawgId}_${Date.now()}`,
     rawgId: pendingGame.rawgId,
@@ -184,9 +213,11 @@ el.confirmAddBtn.onclick = () => {
     year: pendingGame.year,
     cover: pendingGame.cover,
     genres: pendingGame.genres,
+    tags: pendingGame.tags,
     officialPlatforms: pendingGame.officialPlatforms,
     personalPlatforms: checked,
     moods: pendingGame.moods,
+    multiplayer: pendingGame.multiplayer,
     lastPlayed: null,
     personalRating: null,
     playTime: null,

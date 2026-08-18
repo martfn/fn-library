@@ -67,7 +67,7 @@ function normalizeDetails(d) {
     cover: d.background_image || null,
     description: (d.description_raw || "").slice(0, 500),
     genres: (d.genres || []).map((g) => g.name),
-    tags: (d.tags || []).slice(0, 10).map((t) => t.name),
+    tags: (d.tags || []).slice(0, 20).map((t) => t.name),
     officialPlatforms: (d.platforms || []).map((p) => p.platform.name),
     developers: (d.developers || []).map((dv) => dv.name),
     publishers: (d.publishers || []).map((p) => p.name)

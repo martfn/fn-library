@@ -11,6 +11,8 @@ const el = {
   count: document.getElementById("gameCount"),
   platformFilters: document.getElementById("platformFilters"),
   searchInput: document.getElementById("searchInput"),
+  multiplayerFilter: document.getElementById("multiplayerFilter"),
+  minPlayersFilter: document.getElementById("minPlayersFilter"),
   resultCard: document.getElementById("resultCard"),
   libraryList: document.getElementById("libraryList"),
   surpriseBtn: document.getElementById("surpriseBtn"),
@@ -22,8 +24,27 @@ const el = {
   closeWizard: document.getElementById("closeWizard")
 };
 
+function gameMultiplayer(game) {
+  return game.multiplayer || Multiplayer.deriveMultiplayerInfo(game);
+}
+
+function platformName(id) {
+  const p = (library.platforms || []).find((x) => x.id === id);
+  return p ? `${p.icon ? p.icon + " " : ""}${p.name}` : id;
+}
+
+function multiplayerLabel(game) {
+  const info = gameMultiplayer(game);
+  if (!info.isMultiplayer) return "Solo";
+  const parts = [];
+  if (info.isLocal) parts.push("Local");
+  if (info.isOnline) parts.push("Online");
+  if (!parts.length) parts.push("Multiplayer");
+  return `${parts.join(" + ")} · up to ${info.maxPlayers || 2} players`;
+}
+
 function renderPlatformFilters() {
-  const chips = [{ id: "all", name: "All", icon: "\u2b50" }, ...library.platforms];
+  const chips = [{ id: "all", name: "All", icon: "⭐" }, ...library.platforms];
   el.platformFilters.innerHTML = "";
   chips.forEach((p) => {
     const chip = document.createElement("div");
@@ -40,21 +61,40 @@ function renderPlatformFilters() {
 
 function filteredGames() {
   const query = el.searchInput.value.trim().toLowerCase();
+  const multiplayerMode = el.multiplayerFilter.value;
+  const minPlayers = Number(el.minPlayersFilter.value || 1);
+
   return library.games.filter((g) => {
-    const platformOk =
-      activePlatform === "all" || (g.personalPlatforms || []).includes(activePlatform);
+    const info = gameMultiplayer(g);
+    const platformOk = activePlatform === "all" || (g.personalPlatforms || []).includes(activePlatform);
     const searchOk = !query || g.title.toLowerCase().includes(query);
-    return platformOk && searchOk;
+    const multiplayerOk =
+      (multiplayerMode === "all") ||
+      (multiplayerMode === "multiplayer" && info.isMultiplayer) ||
+      (multiplayerMode === "local" && info.isLocal) ||
+      (multiplayerMode === "online" && info.isOnline) ||
+      (multiplayerMode === "solo" && !info.isMultiplayer);
+    const playerCountOk = minPlayers <= 1 || (info.maxPlayers || 1) >= minPlayers;
+    return platformOk && searchOk && multiplayerOk && playerCountOk;
+  }).sort((a, b) => {
+    const ai = gameMultiplayer(a);
+    const bi = gameMultiplayer(b);
+    const modeActive = multiplayerMode !== "all" || minPlayers > 1;
+    if (modeActive) {
+      if ((bi.isMultiplayer ? 1 : 0) !== (ai.isMultiplayer ? 1 : 0)) return (bi.isMultiplayer ? 1 : 0) - (ai.isMultiplayer ? 1 : 0);
+      if ((bi.maxPlayers || 1) !== (ai.maxPlayers || 1)) return (bi.maxPlayers || 1) - (ai.maxPlayers || 1);
+    }
+    return a.title.localeCompare(b.title);
   });
 }
 
 function renderLibraryList() {
   const games = filteredGames();
-  el.count.textContent = `${library.games.length} games available`;
+  el.count.textContent = `${games.length} of ${library.games.length} games shown`;
   el.libraryList.innerHTML = "";
 
   if (games.length === 0) {
-    el.libraryList.innerHTML = `<p style="color:var(--muted)">No games match. Add some in the Collection Editor.</p>`;
+    el.libraryList.innerHTML = `<p style="color:var(--muted)">No games match. Try loosening the hangout filters or add more in the Collection Editor.</p>`;
     return;
   }
 
@@ -65,7 +105,8 @@ function renderLibraryList() {
       <img src="${g.cover || ""}" alt="" onerror="this.style.visibility='hidden'" />
       <div>
         <div class="title">${g.title}</div>
-        <div class="sub">${(g.personalPlatforms || []).join(", ")}</div>
+        <div class="sub">${(g.personalPlatforms || []).map(platformName).join(", ")}</div>
+        <div class="sub">${multiplayerLabel(g)}</div>
       </div>
     `;
     el.libraryList.appendChild(row);
@@ -86,11 +127,11 @@ function showResultCard(game) {
 
   el.resultCard.innerHTML = `
     <h2>${game.title}</h2>
-    <div class="meta">${(game.moods || []).join(" \u00b7 ")} \u00b7 ${(game.personalPlatforms || []).join(", ")}</div>
+    <div class="meta">${(game.moods || []).join(" · ")} · ${multiplayerLabel(game)} · ${(game.personalPlatforms || []).map(platformName).join(", ")}</div>
     <p>${lastPlayedText}</p>
     <div class="actions-row">
-      <button class="btn btn-primary" id="thatsTheOne">\ud83c\udfae That's the one</button>
-      <button class="btn btn-secondary" id="giveAnother">\ud83c\udfb2 Give me another</button>
+      <button class="btn btn-primary" id="thatsTheOne">🎮 That's the one</button>
+      <button class="btn btn-secondary" id="giveAnother">🎲 Give me another</button>
     </div>
   `;
   el.resultCard.classList.remove("hidden");
@@ -102,20 +143,26 @@ function showResultCard(game) {
     el.resultCard.classList.add("hidden");
   };
   document.getElementById("giveAnother").onclick = () => {
-    const next = Recommend.surpriseMe(library.games, activePlatform);
+    const next = Recommend.surpriseMe(library.games, activePlatform, {
+      multiplayerMode: el.multiplayerFilter.value,
+      minPlayers: Number(el.minPlayersFilter.value || 1)
+    });
     showResultCard(next);
   };
 }
 
 el.surpriseBtn.onclick = () => {
-  const game = Recommend.surpriseMe(library.games, activePlatform);
+  const game = Recommend.surpriseMe(library.games, activePlatform, {
+    multiplayerMode: el.multiplayerFilter.value,
+    minPlayers: Number(el.minPlayersFilter.value || 1)
+  });
   showResultCard(game);
 };
 
 function renderMoodGrid() {
   el.moodGrid.innerHTML = "";
   const entries = Object.entries(Moods.MOOD_DEFS);
-  entries.push(["any", { emoji: "\ud83c\udfb2", label: "I don't care" }]);
+  entries.push(["any", { emoji: "🎲", label: "I don't care" }]);
   entries.forEach(([key, def]) => {
     const btn = document.createElement("button");
     btn.className = "btn mood-btn";
@@ -143,7 +190,9 @@ document.querySelectorAll(".time-btn").forEach((btn) => {
     const game = Recommend.recommend(library.games, {
       mood: wizardMood,
       timeBudget,
-      platform: activePlatform
+      platform: activePlatform,
+      multiplayerMode: el.multiplayerFilter.value,
+      minPlayers: Number(el.minPlayersFilter.value || 1)
     });
     el.wizard.classList.add("hidden");
     showResultCard(game);
@@ -151,6 +200,8 @@ document.querySelectorAll(".time-btn").forEach((btn) => {
 });
 
 el.searchInput.addEventListener("input", renderLibraryList);
+el.multiplayerFilter.addEventListener("change", renderLibraryList);
+el.minPlayersFilter.addEventListener("change", renderLibraryList);
 
 renderMoodGrid();
 renderPlatformFilters();
